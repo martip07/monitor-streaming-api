@@ -1,0 +1,7 @@
+falcon
+simplejson
+boto3
+boto
+awscli
+gunicorn
+falcon-cors
