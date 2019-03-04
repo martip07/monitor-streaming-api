@@ -43,6 +43,69 @@ def all_status():
     
     return all_statusData
 
+def merge_lists(l1, l2, key):
+    merged = {}
+    for item in l1+l2:
+        if item[key] in merged:
+            merged[item[key]].update(item)
+        else:
+            merged[item[key]] = item
+    return [val for (_, val) in merged.items()]
+
+def all_ordered():
+    ts = int(time.time())
+    date_day = datetime.datetime.fromtimestamp(ts).strftime('2019-02-28')
+
+    scan_items = table.scan(
+        FilterExpression=Attr('date').eq(date_day)
+    )
+
+    all_statusData = {
+        "Count": str(scan_items['Count']),
+        "Items": simplejson.dumps(scan_items['Items'])
+    }
+
+    items = json.loads(simplejson.dumps(scan_items['Items']))
+
+    providers_list = []
+
+    for provider in items:
+        providers_list.append(provider["provider"])
+
+    provider_list = set(providers_list)
+    
+    print(provider_list)
+
+    provider_item = list()
+    provider_data = dict()
+
+    for item in items:
+        for provider in provider_list:
+            if provider in item["provider"]:
+                #print("Same provider: " + provider)
+                data = {
+                    'provider': provider,
+                    'items': [item["station_id"]]
+                }
+                provider_item.append(data)
+                #return provider_item
+            else:
+                #print("Not the same provider")
+                pass
+
+    print(provider_item)
+
+    for i,item in enumerate(provider_item):
+        if provider == provider_item[i]["provider"]:
+            new_item = provider_item[i]["items"]
+            print(new_item[0])
+            provider_item[i]["items"].append(new_item[0])
+    print(provider_item)
+
+    #if provider_list.
+
+    return all_statusData
+
 class homemonitor:
     def on_get(self, req, resp):
         message = {
@@ -85,6 +148,18 @@ class statussingle:
         resp.body = json.dumps(message)
         resp.status = falcon.HTTP_202
 
+class statushome:
+    def on_get(self, req, resp):
+
+        data = all_ordered()
+
+        message = { 
+            'message': data
+        }
+
+        resp.body = json.dumps(message)
+        resp.status = falcon.HTTP_200
+
 class statusgeneral:
     def on_get(self, req, resp):
 
@@ -104,4 +179,5 @@ api = falcon.API(middleware=[cors.middleware])
 api.add_route('/homemonitor', homemonitor())
 api.add_route('/statusmonitor', statusmonitor())
 api.add_route('/statusgeneral', statusgeneral())
+api.add_route('/statushome', statushome())
 api.add_route('/statussingle/{id_station}', statussingle())
