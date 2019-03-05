@@ -77,7 +77,7 @@ def all_ordered():
     print(provider_list)
 
     provider_item = list()
-    provider_data = dict()
+    provider_data = list()
 
     for item in items:
         for provider in provider_list:
@@ -93,18 +93,33 @@ def all_ordered():
                 #print("Not the same provider")
                 pass
 
-    print(provider_item)
+    #print(provider_item)
 
     for i,item in enumerate(provider_item):
         if provider == provider_item[i]["provider"]:
             new_item = provider_item[i]["items"]
-            print(new_item[0])
+            #print(new_item[0])
             provider_item[i]["items"].append(new_item[0])
-    print(provider_item)
+    #print(provider_item)
+
+    for provider in provider_list:
+        print(provider)
+        scan_items = table.scan(
+            FilterExpression=Attr('provider').eq(provider) & Attr('date').eq(date_day)
+        )
+
+        data = {
+            'count': str(scan_items['Count']),
+            'provider': provider,
+            'items': json.loads(simplejson.dumps(scan_items['Items']))
+        }
+
+        provider_data.append(data)
+
 
     #if provider_list.
 
-    return all_statusData
+    return provider_data
 
 class homemonitor:
     def on_get(self, req, resp):
