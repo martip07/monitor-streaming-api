@@ -34,53 +34,48 @@ drt = RethinkDB()
 connection = drt.connect(db=data_config[env_app]['RETHINK-DB'])
 #######
 
+def single_provider(provider_query, date_query):
+    data_provider = list()
+    data_item = list()
+    cursor_provider = drt.table(data_config[env_app]['RETHINK-TABLE']).filter((drt.row["provider"] == provider_query) & (drt.row["date"] == date_query)).run(connection)
+    for document in cursor_provider:
+        data_item.append(document)
+    item = {
+        'provider': provider_query,
+        'items': data_item
+    }
+
+    return item
+
 def all_status():
     ts = int(time.time())
     date_day = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
 
     cursor = drt.table(data_config[env_app]['RETHINK-TABLE']).filter(drt.row["date"] == date_day).run(connection)
 
-    print(cursor)
-
-    items_array = dict()
+    items_array = list()
 
     for document in cursor:
-        items_array.update(document)
-
-    #scan_items = table.scan(
-    #    FilterExpression=Attr('date').eq(date_day)
-    #)
+        items_array.append(document)
 
     all_statusData = {
-        "Count": str(3),
         "Items": json.loads(simplejson.dumps(items_array))
     }
-    
+  
     return all_statusData
-
-def merge_lists(l1, l2, key):
-    merged = {}
-    for item in l1+l2:
-        if item[key] in merged:
-            merged[item[key]].update(item)
-        else:
-            merged[item[key]] = item
-    return [val for (_, val) in merged.items()]
 
 def all_ordered():
     ts = int(time.time())
-    date_day = datetime.datetime.fromtimestamp(ts).strftime('2019-02-28')
+    date_day = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
 
-    scan_items = table.scan(
-        FilterExpression=Attr('date').eq(date_day)
-    )
+    cursor = drt.table(data_config[env_app]['RETHINK-TABLE']).filter(drt.row["date"] == date_day).run(connection)
 
-    all_statusData = {
-        "Count": str(scan_items['Count']),
-        "Items": simplejson.dumps(scan_items['Items'])
-    }
+    items_array = list()
 
-    items = json.loads(simplejson.dumps(scan_items['Items']))
+    for document in cursor:
+        items_array.append(document)
+
+    items = json.loads(simplejson.dumps(items_array))
 
     providers_list = []
 
@@ -93,48 +88,15 @@ def all_ordered():
 
     provider_item = list()
     provider_data = list()
+    data_list = list()
 
-    for item in items:
-        for provider in provider_list:
-            if provider in item["provider"]:
-                #print("Same provider: " + provider)
-                data = {
-                    'provider': provider,
-                    'items': [item["station_id"]]
-                }
-                provider_item.append(data)
-                #return provider_item
-            else:
-                #print("Not the same provider")
-                pass
-
-    #print(provider_item)
-
-    for i,item in enumerate(provider_item):
-        if provider == provider_item[i]["provider"]:
-            new_item = provider_item[i]["items"]
-            #print(new_item[0])
-            provider_item[i]["items"].append(new_item[0])
-    #print(provider_item)
-
+    
     for provider in provider_list:
-        print(provider)
-        scan_items = table.scan(
-            FilterExpression=Attr('provider').eq(provider) & Attr('date').eq(date_day)
-        )
+        single_item = single_provider(provider, date_day)
+        data_list.append(single_item)
 
-        data = {
-            'count': str(scan_items['Count']),
-            'provider': provider,
-            'items': json.loads(simplejson.dumps(scan_items['Items']))
-        }
+    return data_list
 
-        provider_data.append(data)
-
-
-    #if provider_list.
-
-    return provider_data
 
 class homemonitor:
     def on_get(self, req, resp):
@@ -195,11 +157,10 @@ class statusgeneral:
 
         data = all_status()
 
+        print(data)
+
         message = { 
-            'message': {
-                'count': data["Count"],
-                'items': data["Items"]
-            }
+            'message': data
         }
 
         resp.body = json.dumps(message)
