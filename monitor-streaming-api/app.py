@@ -6,6 +6,7 @@ import subprocess
 import datetime
 import time
 import os
+from rethinkdb import RethinkDB
 from boto3.dynamodb.conditions import Key, Attr
 from falcon_cors import CORS
 
@@ -27,18 +28,32 @@ table = dynamodb.Table(data_config[env_app]['DYNAMO-TABLE'])
 #######
 
 
+#### RETHINKDB CONFIG ####
+
+drt = RethinkDB()
+connection = drt.connect(db=data_config[env_app]['RETHINK-DB'])
+#######
 
 def all_status():
     ts = int(time.time())
     date_day = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
 
-    scan_items = table.scan(
-        FilterExpression=Attr('date').eq(date_day)
-    )
+    cursor = drt.table(data_config[env_app]['RETHINK-TABLE']).filter(drt.row["date"] == date_day).run(connection)
+
+    print(cursor)
+
+    items_array = dict()
+
+    for document in cursor:
+        items_array.update(document)
+
+    #scan_items = table.scan(
+    #    FilterExpression=Attr('date').eq(date_day)
+    #)
 
     all_statusData = {
-        "Count": str(scan_items['Count']),
-        "Items": simplejson.dumps(scan_items['Items'])
+        "Count": str(3),
+        "Items": json.loads(simplejson.dumps(items_array))
     }
     
     return all_statusData
