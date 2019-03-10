@@ -151,7 +151,7 @@ class statussingle:
             'message': data
         }
         resp.body = json.dumps(message)
-        resp.status = falcon.HTTP_202
+        resp.status = falcon.HTTP_200
 
 class statushome:
     def on_get(self, req, resp):
