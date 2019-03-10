@@ -47,6 +47,19 @@ def single_provider(provider_query, date_query):
 
     return item
 
+def single_item(id_item):
+    data_item = list()
+    ts = int(time.time())
+    cursor_single = drt.table(data_config[env_app]['RETHINK-TABLE']).filter(drt.row["id"] == id_item).run(connection)
+    for document in cursor_single:
+        data_item.append(document)
+
+    item = {
+        'item': data_item
+    }
+
+    return item
+
 def all_status():
     ts = int(time.time())
     date_day = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
@@ -132,7 +145,7 @@ class statusmonitor:
 
 class statussingle:
     def on_get(self, req, resp, id_station):
-        data = str(id_station)
+        data = single_item(id_station)
 
         message = {
             'message': data
